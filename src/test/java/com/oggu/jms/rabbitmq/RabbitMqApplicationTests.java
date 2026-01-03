@@ -1,4 +1,4 @@
-package com.jms.rabbitmq;
+package com.oggu.jms.rabbitmq;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

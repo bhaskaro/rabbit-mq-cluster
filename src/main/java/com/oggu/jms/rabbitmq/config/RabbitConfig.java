@@ -1,4 +1,4 @@
-package com.jms.rabbitmq.config;
+package com.oggu.jms.rabbitmq.config;
 
 import org.springframework.amqp.core.*;
 import org.springframework.context.annotation.Bean;

@@ -8,7 +8,7 @@
 		<version>4.0.1</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.jms</groupId>
+	<groupId>com.oggu.jms</groupId>
 	<artifactId>RabbitMQ</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>RabbitMQ</name>

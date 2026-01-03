@@ -1,6 +1,6 @@
-package com.jms.rabbitmq.producer;
+package com.oggu.jms.rabbitmq.producer;
 
-import com.jms.rabbitmq.config.RabbitConfig;
+import com.oggu.jms.rabbitmq.config.RabbitConfig;
 import org.springframework.amqp.core.MessageDeliveryMode;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
