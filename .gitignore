@@ -1,0 +1,88 @@
+# ===============================
+# Maven
+# ===============================
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# ===============================
+# Maven Wrapper
+# ===============================
+.mvn/wrapper/maven-wrapper.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# ===============================
+# Gradle (ignore if not used)
+# ===============================
+.gradle/
+build/
+
+# ===============================
+# Logs
+# ===============================
+*.log
+logs/
+
+# ===============================
+# Spring Boot
+# ===============================
+*.pid
+*.pid.lock
+application-*.yml
+application-*.properties
+
+# ===============================
+# IDEs
+# ===============================
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# VS Code
+.vscode/
+
+# ===============================
+# OS
+# ===============================
+.DS_Store
+Thumbs.db
+
+# ===============================
+# Docker
+# ===============================
+docker-compose.override.yml
+*.env
+
+# ===============================
+# RabbitMQ
+# ===============================
+rabbitmq-data/
+*.erlang.cookie
+
+# ===============================
+# Java
+# ===============================
+*.class
+hs_err_pid*
+
+# ===============================
+# Test & Coverage
+# ===============================
+/coverage/
+*.exec
+*.jacoco
+
+# ===============================
+# Temporary Files
+# ===============================
+tmp/
+*.tmp
+*.swp
+*.swo
+
