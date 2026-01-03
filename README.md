@@ -1,15 +1,29 @@
-# 🐇 RabbitMQ Cluster – Spring Boot Example
+# 🐇 RabbitMQ Cluster – Spring Boot Topic Messaging (Java 21)
 
-This project demonstrates a **RabbitMQ Topic Exchange** using a **Spring Boot application** with:
+This project demonstrates **RabbitMQ Topic Exchange messaging** using a **Spring Boot application** with **Spring AMQP**.
 
-* Multi-threaded **Producer**
-* Multi-threaded **Consumer**
-* 4 topic routing keys
-* Durable queues & persistent messages
-* Java **21**
+The application acts as a **consumer**, while messages can be published from:
 
-Repository:
-👉 [https://github.com/bhaskaro/rabbit-mq-cluster.git](https://github.com/bhaskaro/rabbit-mq-cluster.git)
+* RabbitMQ Management UI
+* CLI (`rabbitmqadmin`)
+* Any external AMQP client (Java, Python, Node, etc.)
+
+---
+
+## 📌 Repository
+
+**GitHub:**
+[https://github.com/bhaskaro/rabbit-mq-cluster.git](https://github.com/bhaskaro/rabbit-mq-cluster.git)
+
+---
+
+## 🧰 Tech Stack
+
+* **Java:** 21
+* **Spring Boot**
+* **Spring AMQP**
+* **RabbitMQ (Docker)**
+* **Maven**
 
 ---
 
@@ -22,27 +36,29 @@ rabbitmq-cluster/
 ├── docker-compose.yml
 ├── src/
 │   └── main/
-│       └── java/
-│           └── com/jms/rabbitmq/
-│               ├── consumer/
-│               │   └── TopicConsumer.java
-│               └── producer/
-│                   └── TopicProducer.java
-└── src/main/resources/
-    └── application.yml
+│       ├── java/
+│       │   └── com/jms/rabbitmq/
+│       │       ├── config/
+│       │       │   └── RabbitConfig.java
+│       │       ├── consumer/
+│       │       │   └── TopicConsumer.java
+│       │       └── producer/
+│       │           └── TopicProducer.java
+│       └── resources/
+│           └── application.yml
 ```
 
 ---
 
 ## 🧰 Prerequisites
 
-Make sure the following are installed:
+Make sure you have:
 
 * **Java 21**
 * **Docker & Docker Compose**
 * **Maven 3.9+**
 
-Verify versions:
+Verify:
 
 ```bash
 java -version
@@ -53,7 +69,7 @@ mvn -v
 
 ---
 
-## 🐳 Step 1: Start RabbitMQ Cluster
+## 🐳 Step 1: Start RabbitMQ (Docker)
 
 From the project root:
 
@@ -76,22 +92,14 @@ password: guest
 
 ---
 
-## 🔧 Step 2: RabbitMQ Topology
+## 🏗 Step 2: RabbitMQ Concepts Used
 
 ### Exchange
 
 ```
-Name : topic.exchange
-Type : topic
-```
-
-### Routing Keys (Topics)
-
-```
-order.created
-order.updated
-payment.success
-payment.failed
+Name   : topic.exchange
+Type   : topic
+Durable: true
 ```
 
 ### Queues
@@ -103,36 +111,69 @@ audit.queue
 all.queue
 ```
 
-### Bindings
+### Topics (Routing Keys)
 
-| Queue         | Routing Key |
-| ------------- | ----------- |
-| order.queue   | order.*     |
-| payment.queue | payment.*   |
-| audit.queue   | *.*         |
-| all.queue     | #           |
+> Topics are **logical routing keys**, not physical resources.
+
+```
+order.created
+order.updated
+payment.success
+payment.failed
+```
 
 ---
 
-## ⚙️ Step 3: Application Configuration
+## 🔗 Step 3: Exchange Bindings (Topic Patterns)
+
+| Queue         | Binding Pattern | Matches Topics                  |
+| ------------- | --------------- | ------------------------------- |
+| order.queue   | order.*         | order.created, order.updated    |
+| payment.queue | payment.*       | payment.success, payment.failed |
+| audit.queue   | *.*             | all two-level topics            |
+| all.queue     | #               | all topics                      |
+
+---
+
+## ⚙️ Step 4: Resource Creation (Automatic)
+
+RabbitMQ resources are **automatically created by Spring Boot** at application startup via `RabbitConfig`.
+
+✔ No manual creation required
+✔ Idempotent
+✔ Safe for restarts
+
+> If the exchange or queues already exist, Spring Boot will reuse them.
+
+---
+
+## ⚙️ Step 5: Application Configuration
 
 ### `application.yml`
 
 ```yaml
 spring:
+  application:
+    name: rabbitmq-cluster
+
   rabbitmq:
     host: localhost
     port: 5672
     username: guest
     password: guest
     virtual-host: app_vhost
+
+    listener:
+      simple:
+        acknowledge-mode: manual
+        concurrency: 4
+        max-concurrency: 8
+        prefetch: 10
 ```
 
 ---
 
-## 🏗 Step 4: Build the Application
-
-From the repository root:
+## 🏗 Step 6: Build the Application
 
 ```bash
 mvn clean package
@@ -140,59 +181,112 @@ mvn clean package
 
 ---
 
-## 🚀 Step 5: Run the Applications
+## ▶ Step 7: Start the Spring Boot Application
 
-### ▶ Start Producer
-
-```bash
-mvn spring-boot:run -Dspring-boot.run.main-class=com.jms.rabbitmq.producer.TopicProducer
-```
-
-✔ Publishes messages continuously
-✔ Uses 4 routing keys
-✔ Multi-threaded publishing
-
----
-
-### ▶ Start Consumer (in a new terminal)
+Run the consumer application:
 
 ```bash
-mvn spring-boot:run -Dspring-boot.run.main-class=com.jms.rabbitmq.consumer.TopicConsumer
+mvn spring-boot:run
 ```
 
-✔ One thread per queue
-✔ Manual ACK
-✔ Prefetch enabled
+On startup, Spring Boot will:
+
+* Connect to RabbitMQ
+* Declare exchange, queues, and bindings
+* Start multiple consumer threads
 
 ---
 
-## 🧪 Step 6: Verify Message Flow
+## 🧪 Step 8: Publish Messages (Topic Creation & Testing)
 
-### Producer Logs
+> Topics are created **implicitly** when a message is published with a routing key.
 
-```text
-Producer-1 sent [order.created]: Message-10
-Producer-2 sent [payment.success]: Message-11
+---
+
+### ▶ Option A: RabbitMQ Management UI (Recommended)
+
+1. Open
+
+   ```
+   http://localhost:15672
+   ```
+2. Go to **Exchanges → topic.exchange**
+3. Scroll to **Publish message**
+4. Enter:
+
+```
+Routing key  : order.created
+Payload      : {"orderId":101,"status":"CREATED"}
+Delivery mode: Persistent
 ```
 
-### Consumer Logs
+5. Click **Publish message**
+
+Expected delivery:
+
+* `order.queue`
+* `audit.queue`
+* `all.queue`
+
+---
+
+### ▶ Option B: CLI (`rabbitmqadmin`)
+
+```bash
+docker exec -it rabbitmq1 rabbitmqadmin \
+  -V app_vhost publish \
+  exchange=topic.exchange \
+  routing_key=payment.failed \
+  payload="Payment failed for order 101"
+```
+
+Expected delivery:
+
+* `payment.queue`
+* `audit.queue`
+* `all.queue`
+
+---
+
+### ▶ Option C: Publish a Non-matching Topic
+
+```bash
+docker exec -it rabbitmq1 rabbitmqadmin \
+  -V app_vhost publish \
+  exchange=topic.exchange \
+  routing_key=shipment.created \
+  payload="Shipment created"
+```
+
+Expected behavior:
+
+* ❌ Not delivered to `order.queue`
+* ❌ Not delivered to `payment.queue`
+* ✔ Delivered to `audit.queue`
+* ✔ Delivered to `all.queue`
+
+---
+
+## 🔍 Step 9: Verify Message Consumption
+
+### Application Logs
 
 ```text
-Queue [order.queue] received: Message-10
-Queue [payment.queue] received: Message-11
+[order.queue] received: {"orderId":101,"status":"CREATED"}
+[payment.queue] received: Payment failed for order 101
 ```
 
 ---
 
-## 🔍 Step 7: Observe Queue Backlog
+## 🔎 Step 10: Monitor Queues
 
-From Management UI:
+### Management UI
 
 ```
 Queues → Ready / Unacked
 ```
 
-Or CLI:
+### CLI
 
 ```bash
 docker exec -it rabbitmq1 rabbitmqctl list_queues name messages_ready messages_unacknowledged
@@ -200,16 +294,16 @@ docker exec -it rabbitmq1 rabbitmqctl list_queues name messages_ready messages_u
 
 ---
 
-## 🧠 Important Behavior (Expected)
+## 🧠 Expected Behavior (Important)
 
-* Messages **remain in queues** until ACKed
-* Stopping producer does **not** remove queued messages
-* Restarting consumer drains backlog
+* Messages remain in queues until **ACKed**
+* Stopping the producer does **not** remove queued messages
+* Restarting the consumer drains the backlog
 * Each queue has its **own copy** of messages
 
 ---
 
-## 🛑 Stop Everything
+## 🛑 Step 11: Stop Everything
 
 ```bash
 docker compose down
@@ -223,27 +317,26 @@ docker compose down -v
 
 ---
 
-## ✅ Key Concepts Demonstrated
+## ✅ What This Project Demonstrates
 
 * Topic exchange routing
-* Multi-threaded producers & consumers
-* Durable queues
-* Persistent messages
+* Spring-managed RabbitMQ topology
+* `@RabbitListener` consumers
 * Manual acknowledgments
-* Backpressure via prefetch
+* Multi-threaded consumption
+* External client interoperability
 * Java 21 compatibility
 
 ---
 
-## 🔮 Possible Enhancements
+## 🔮 Future Enhancements
 
-* Spring `@RabbitListener` with concurrency
-* Dead Letter Exchanges (DLX)
-* Message TTL
-* Quorum queues
-* TLS / SSL
-* Prometheus & Grafana monitoring
-* Kubernetes (StatefulSet)
+* Dead Letter Exchanges (DLQ)
+* Retry policies
+* JSON serialization/deserialization
+* Metrics with Micrometer
+* Testcontainers integration tests
+* Spring Cloud Stream implementation
 
 ---
 
@@ -252,3 +345,9 @@ docker compose down -v
 **Vijaya Bhaskar Oggu**
 GitHub: [https://github.com/bhaskaro](https://github.com/bhaskaro)
 
+---
+
+### ✅ Final Note
+
+> Topics are **routing keys**, not entities.
+> If routing keys and bindings match, messaging works — regardless of client language.
