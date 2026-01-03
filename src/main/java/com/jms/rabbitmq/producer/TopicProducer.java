@@ -1,16 +1,17 @@
-package com.jms.rabbitmq;
+package com.jms.rabbitmq.producer;
 
-import com.rabbitmq.client.*;
+import com.jms.rabbitmq.config.RabbitConfig;
+import org.springframework.amqp.core.MessageDeliveryMode;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.time.Instant;
+import java.util.Random;
 
+@Component
 public class TopicProducer {
 
-    private static final String RABBITMQ_HOST = "192.168.1.222";
-
-    private static final String EXCHANGE = "topic.exchange";
     private static final String[] ROUTING_KEYS = {
             "order.created",
             "order.updated",
@@ -18,46 +19,26 @@ public class TopicProducer {
             "payment.failed"
     };
 
-    public static void main(String[] args) throws Exception {
+    private final RabbitTemplate rabbitTemplate;
 
-        ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost(RABBITMQ_HOST);
-        factory.setUsername("guest");
-        factory.setPassword("guest");
-        factory.setVirtualHost("app_vhost");
-
-        Connection connection = factory.newConnection();
-
-        ExecutorService executor = Executors.newFixedThreadPool(4);
-
-        for (int i = 0; i < 4; i++) {
-            final int threadId = i;
-            executor.submit(() -> publish(connection, threadId));
-        }
+    public TopicProducer(RabbitTemplate rabbitTemplate) {
+        this.rabbitTemplate = rabbitTemplate;
     }
 
-    private static void publish(Connection connection, int threadId) {
-        try (Channel channel = connection.createChannel()) {
+    @Scheduled(fixedRate = 500)
+    public void publish() {
+        String routingKey = ROUTING_KEYS[new Random().nextInt(4)];
+        String message = "Message at " + Instant.now();
 
-            int count = 0;
-            while (true) {
-                String routingKey = ROUTING_KEYS[count % ROUTING_KEYS.length];
-                String message = "Message-" + count + " from Producer-" + threadId;
+        rabbitTemplate.convertAndSend(
+                RabbitConfig.EXCHANGE,
+                routingKey,
+                message,
+                msg -> {
+                    msg.getMessageProperties().setDeliveryMode(MessageDeliveryMode.PERSISTENT);
+                    return msg;
+                });
 
-                channel.basicPublish(
-                        EXCHANGE,
-                        routingKey,
-                        MessageProperties.PERSISTENT_TEXT_PLAIN,
-                        message.getBytes(StandardCharsets.UTF_8));
-
-                System.out.printf("Producer-%d sent [%s]: %s%n",
-                        threadId, routingKey, message);
-
-                count++;
-                Thread.sleep(500);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        System.out.println("Sent → " + routingKey + " : " + message);
     }
 }

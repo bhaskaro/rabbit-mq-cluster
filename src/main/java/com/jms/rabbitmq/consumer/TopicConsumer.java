@@ -1,61 +1,41 @@
-package com.jms.rabbitmq;
+package com.jms.rabbitmq.consumer;
 
-import com.rabbitmq.client.*;
+import com.rabbitmq.client.Channel;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
+@Component
 public class TopicConsumer {
 
-    private static final String RABBITMQ_HOST = "192.168.1.222";
-
-    private static final String[] QUEUES = {
-            "order.queue",
-            "payment.queue",
-            "audit.queue",
-            "all.queue"
-    };
-
-    public static void main(String[] args) throws Exception {
-
-        ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost(RABBITMQ_HOST);
-        factory.setUsername("guest");
-        factory.setPassword("guest");
-        factory.setVirtualHost("app_vhost");
-
-        Connection connection = factory.newConnection();
-
-        ExecutorService executor = Executors.newFixedThreadPool(4);
-
-        for (String queue : QUEUES) {
-            executor.submit(() -> consume(connection, queue));
-        }
+    @RabbitListener(queues = "order.queue")
+    public void consumeOrder(Message message, Channel channel) throws Exception {
+        handle("order.queue", message, channel);
     }
 
-    private static void consume(Connection connection, String queue) {
-        try {
-            Channel channel = connection.createChannel();
-            channel.basicQos(10);
+    @RabbitListener(queues = "payment.queue")
+    public void consumePayment(Message message, Channel channel) throws Exception {
+        handle("payment.queue", message, channel);
+    }
 
-            DeliverCallback callback = (tag, delivery) -> {
-                String msg = new String(delivery.getBody(), StandardCharsets.UTF_8);
-                System.out.printf("Queue [%s] received: %s%n", queue, msg);
+    @RabbitListener(queues = "audit.queue")
+    public void consumeAudit(Message message, Channel channel) throws Exception {
+        handle("audit.queue", message, channel);
+    }
 
-                try {
-                    Thread.sleep(300);// simulate work
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } 
-                channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
-            };
+    @RabbitListener(queues = "all.queue")
+    public void consumeAll(Message message, Channel channel) throws Exception {
+        handle("all.queue", message, channel);
+    }
 
-            channel.basicConsume(queue, false, callback, tag -> {});
+    private void handle(String queue, Message message, Channel channel) throws Exception {
+        String payload = new String(message.getBody(), StandardCharsets.UTF_8);
+        System.out.printf("[%s] received: %s%n", queue, payload);
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
     }
 }
+
 

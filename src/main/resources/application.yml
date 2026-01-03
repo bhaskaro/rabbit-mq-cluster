@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: rabbitmq-cluster
+
+  rabbitmq:
+    host: 192.168.1.222
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: app_vhost
+
+    listener:
+      simple:
+        acknowledge-mode: manual
+        concurrency: 4
+        max-concurrency: 8
+        prefetch: 10
