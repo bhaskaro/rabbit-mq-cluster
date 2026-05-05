@@ -19,15 +19,16 @@ public class TopicProducer {
             "payment.failed"
     };
 
+    private final Random random = new Random();
     private final RabbitTemplate rabbitTemplate;
 
     public TopicProducer(RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    @Scheduled(fixedRate = 500)
+    @Scheduled(fixedRateString = "${app.messaging.producer.fixed-rate-ms}")
     public void publish() {
-        String routingKey = ROUTING_KEYS[new Random().nextInt(4)];
+        String routingKey = ROUTING_KEYS[random.nextInt(ROUTING_KEYS.length)];
         String message = "Message at " + Instant.now();
 
         rabbitTemplate.convertAndSend(

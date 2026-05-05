@@ -3,8 +3,7 @@ spring:
     name: rabbitmq-cluster
 
   rabbitmq:
-    host: 192.168.1.222
-    port: 5672
+    addresses: localhost:5672,localhost:5673,localhost:5674,localhost:5675
     username: guest
     password: guest
     virtual-host: app_vhost
@@ -15,3 +14,8 @@ spring:
         concurrency: 4
         max-concurrency: 8
         prefetch: 10
+
+app:
+  messaging:
+    producer:
+      fixed-rate-ms: 500
